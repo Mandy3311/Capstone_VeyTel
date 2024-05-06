@@ -12,10 +12,10 @@ setuptools.setup(
     version=_version.__version__,
     author="Aayush Dhanotiya",
     author_email="aayush.dhanotia@gmail.com",
-    description="TorchXRayVision: A library of chest X-ray datasets and models",
+    description="TorchXRayVision: A library of chest X-ray datasets and models on pre and post covid",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/aayushdhanotia12/Fine-tuned-TorchXrayVIsion-Covid",
+    url="https://github.com/Mandy3311/Capstone_VeyTel/tree/main/Model5_TorchXrayVision_Covid",
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: Apache Software License",
