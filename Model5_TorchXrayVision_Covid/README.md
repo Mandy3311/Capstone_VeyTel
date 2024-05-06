@@ -25,8 +25,8 @@ Twitter: [@torchxrayvision](https://twitter.com/torchxrayvision)
 $ pip install yourdirectory/torchxrayvision
 ```
 For Fine-tuned checkpoint on post COVID dataset.
-```python3 trainmodel.py 
-
+```python3
+python trainmodel.py 
 ```
 For TorchXrayVision's general use.
 ``` Python3 
