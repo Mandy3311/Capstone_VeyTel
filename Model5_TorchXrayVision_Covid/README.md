@@ -11,7 +11,7 @@
 
 A library for chest X-ray datasets and models. Including pre-trained models.
 
-
+The aim of this project is to address the discrepencies arised post covid in accuraries of multiple medical deep learning models. ResNet101 is fine-tuned on pre and post covid datasets for covid and pneumonia. 
 TorchXRayVision is an open source software library for working with chest X-ray datasets and deep learning models. It provides a common interface and common pre-processing chain for a wide set of publicly available chest X-ray datasets. In addition, a number of classification and representation learning models with different architectures, trained on different data combinations, are available through the library to serve as baselines or feature extractors.
 
 - In the case of researchers addressing clinical questions it is a waste of time for them to train models from scratch. To address this, TorchXRayVision provides pre-trained models which are trained on large cohorts of data and enables 1) rapid analysis of large datasets 2) feature reuse for few-shot learning.
