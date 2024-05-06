@@ -209,19 +209,26 @@ def get_data(dataset_str, masks=False, unique_patients=False,
              transform=None, data_aug=None, merge=True, views=["PA", "AP"],
              pathologies=None):
     
-    dataset_dir = "/content/drive/MyDrive/Capstone-Veytel/torchxrayvision/torchxrayvision/data"
+    dataset_dir = "/jet/home/dhanotiy/tmp_ondemand_ocean_cis230079p_symlink/shared/CapStone-VeyTel-2024/datasets"
     datasets = []
 
-    # Pathology mapping to your classes
-    pathology_map = {
-        "COVID-Pneumonia": 2,    # COVID pneumonia
-        "Non-COVID-Pneumonia": 1,   # non-COVID pneumonia
-        "Non-Pneumonia": 0   # non-pneumonia
-    }
+#     # Pathology mapping to your classes
+#     pathology_map = {
+#         "COVID-Pneumonia": 2,    # COVID pneumonia
+#         "Non-COVID-Pneumonia": 1,   # non-COVID pneumonia
+#         "Non-Pneumonia": 0   # non-pneumonia
+#     }
     
-    
+#     if "chex" in dataset_str:
+#         dataset = xrv.datasets.CheX_Dataset(
+#             imgpath=dataset_dir + "/CheXpert-v1.0-small",
+#             csvpath=dataset_dir + "/CheXpert-v1.0-small/train.csv",
+#             transform=transform, data_aug=data_aug, 
+#             unique_patients=False,
+#             views=views)
+#         datasets.append(dataset)    
     # Define which datasets to initialize
-    dataset_map = {
+    dataset = {
         "custom": xrv.datasets.PneumoniaXRayDataset
         # Add other datasets if needed
     }
@@ -229,27 +236,48 @@ def get_data(dataset_str, masks=False, unique_patients=False,
     # Initialize datasets based on the keys in dataset_str
     for key, cls in dataset_map.items():
         if key in dataset_str:
-            dataset = cls(img_dir=dataset_dir + "/Sampled_Custom/",
-                          csv_file=dataset_dir + "/merged_labels.csv",
+            dataset = cls(imgpath=dataset_dir + "/data-clean/train/",
+                          csvpath=dataset_dir + "/merged_labels.csv",
                           transform=transform, data_aug=data_aug,
                           unique_patients=unique_patients, views=views)
             datasets.append(dataset)
-
-    # Relabel datasets to use standard classes
-    if pathologies:
+        
+    if not pathologies is None:
         for d in datasets:
-            relabel_dataset(d, pathology_map)
-
+            xrv.datasets.relabel_dataset(pathologies, d)
+    
+        
     if merge:
+        newlabels = set()
+        for d in datasets:
+            newlabels = newlabels.union(d.pathologies)
+#         if "Support Devices" in newlabels:
+#             newlabels.remove("Support Devices")
+        print(list(newlabels))
+        for d in datasets:
+            xrv.datasets.relabel_dataset(list(newlabels), d)
+            
+            
         dmerge = xrv.datasets.Merge_Dataset(datasets)
         return dmerge
+        
     else:
         return datasets
+#     # Relabel datasets to use standard classes
+#     if pathologies:
+#         for d in datasets:
+#             relabel_dataset(d, pathology_map)
 
-def relabel_dataset(dataset, pathology_map):
-    new_labels = []
-    for label in dataset.labels:
-        mapped_label = [pathology_map.get(l, -1) for l in label]  # Use -1 for undefined pathologies
-        new_labels.append(mapped_label)
-    dataset.labels = torch.tensor(new_labels)
+#     if merge:
+#         dmerge = xrv.datasets.Merge_Dataset(datasets)
+#         return dmerge
+#     else:
+#         return datasets
+
+# # def relabel_dataset(dataset, pathology_map):
+# #     new_labels = []
+# #     for label in dataset.labels:
+# #         mapped_label = [pathology_map.get(l, -1) for l in label]  # Use -1 for undefined pathologies
+# #         new_labels.append(mapped_label)
+# #     dataset.labels = torch.tensor(new_labels)
   

@@ -8,7 +8,7 @@ from os.path import exists, join
 import numpy as np
 import torch
 import sklearn.metrics
-from sklearn.metrics import roc_auc_score, accuracy_score
+from sklearn.metrics import roc_auc_score, accuracy_score, confusion_matrix
 import sklearn, sklearn.model_selection
 import torchxrayvision as xrv
 
@@ -53,7 +53,7 @@ def train(model, dataset, cfg):
 
     # Dataset    
     gss = sklearn.model_selection.GroupShuffleSplit(train_size=0.8,test_size=0.2, random_state=cfg.seed)
-    train_inds, test_inds = next(gss.split(X=range(len(dataset)), groups=dataset.csv.patientid))
+    train_inds, test_inds = next(gss.split(X=range(len(dataset)), groups=dataset.csv.dataset_ID))
     train_dataset = xrv.datasets.SubsetDataset(dataset, train_inds)
     valid_dataset = xrv.datasets.SubsetDataset(dataset, test_inds)
 
@@ -74,7 +74,7 @@ def train(model, dataset, cfg):
     optim = torch.optim.Adam(model.parameters(), lr=cfg.lr, weight_decay=1e-5, amsgrad=True)
     print(optim)
 
-    criterion = torch.nn.CrossEntropyLoss()
+    criterion = torch.nn.BCEWithLogitsLoss()
 
     # Checkpointing
     start_epoch = 0
@@ -158,7 +158,7 @@ def train_epoch(cfg, epoch, model, device, train_loader, optimizer, criterion, l
     avg_loss = []
     t = tqdm(train_loader)
     for batch_idx, samples in enumerate(t):
-        
+#         print(samples)
         if limit and (batch_idx > limit):
             print("breaking out")
             break
@@ -166,6 +166,7 @@ def train_epoch(cfg, epoch, model, device, train_loader, optimizer, criterion, l
         optimizer.zero_grad()
         
         images = samples["img"].float().to(device)
+#         print(images)
         targets = samples["lab"].to(device)
 
         outputs = model(images)
@@ -221,9 +222,12 @@ def valid_test_epoch(name, epoch, model, device, data_loader, criterion, limit=N
     avg_loss = []
     task_outputs={}
     task_targets={}
+    task_preds = {}  # To store binary predictions for confusion matrix
+
     for task in range(data_loader.dataset[0]["lab"].shape[0]):
         task_outputs[task] = []
         task_targets[task] = []
+        task_preds[task] = []  # Ensure this is initialized
         
     with torch.no_grad():
         t = tqdm(data_loader)
@@ -245,12 +249,14 @@ def valid_test_epoch(name, epoch, model, device, data_loader, criterion, limit=N
                 mask = ~torch.isnan(task_target)
                 task_output = task_output[mask]
                 task_target = task_target[mask]
+                # For confusion matrix
+                task_pred = (torch.sigmoid(task_output) > 0.5).float()  # Convert outputs to binary predictions
                 if len(task_target) > 0:
                     loss += criterion(task_output.double(), task_target.double())
                 
                 task_outputs[task].append(task_output.detach().cpu().numpy())
                 task_targets[task].append(task_target.detach().cpu().numpy())
-
+                task_preds[task].append(task_pred.detach().cpu().numpy())  # Store predictions
             loss = loss.sum()
             
             avg_loss.append(loss.detach().cpu().numpy())
@@ -259,27 +265,23 @@ def valid_test_epoch(name, epoch, model, device, data_loader, criterion, limit=N
         for task in range(len(task_targets)):
             task_outputs[task] = np.concatenate(task_outputs[task])
             task_targets[task] = np.concatenate(task_targets[task])
-    
-    #     task_aucs = []
-    #     for task in range(len(task_targets)):
-    #         if len(np.unique(task_targets[task]))> 1:
-    #             task_auc = sklearn.metrics.roc_auc_score(task_targets[task], task_outputs[task])
-    #             #print(task, task_auc)
-    #             task_aucs.append(task_auc)
-    #         else:
-    #             task_aucs.append(np.nan)
+            task_preds[task] = np.concatenate(task_preds[task])  # Aggregate predictions
+            # Compute and print confusion matrix
+            cm = confusion_matrix(task_targets[task], task_preds[task])
+            print(f'Confusion Matrix for Task {task}:')
+            print(cm)
+            
+        task_aucs = []
+        for task in range(len(task_targets)):
+            if len(np.unique(task_targets[task]))> 1:
+                task_auc = sklearn.metrics.roc_auc_score(task_targets[task], task_outputs[task])
+                #print(task, task_auc)
+                task_aucs.append(task_auc)
+            else:
+                task_aucs.append(np.nan)
 
-    # task_aucs = np.asarray(task_aucs)
-    # auc = np.mean(task_aucs[~np.isnan(task_aucs)])
-        def calculate_accuracy(outputs, targets):
-            with torch.no_grad():
-                pred = torch.argmax(outputs, dim=1)
-                assert pred.shape[0] == len(targets)
-                correct = 0
-                correct += torch.sum(pred == targets).item()
-            return correct / len(targets)
-        accuracy = calculate_accuracy(outputs, targets)
-        print(f'Epoch {epoch + 1} - {name} - Accuracy = {accuracy:4.4f}')
-    # print(f'Epoch {epoch + 1} - {name} - Avg AUC = {auc:4.4f}')
+    task_aucs = np.asarray(task_aucs)
+    auc = np.mean(task_aucs[~np.isnan(task_aucs)])
+    print(f'Epoch {epoch + 1} - {name} - Avg AUC = {auc:4.4f}')
 
-    return accuracy, task_outputs, task_targets
+    return auc, task_aucs, task_outputs, task_targets
