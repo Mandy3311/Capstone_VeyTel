@@ -2,7 +2,7 @@
 
 🚨 Documentation now online! [https://mlmed.org/torchxrayvision/](https://mlmed.org/torchxrayvision/)
 
-# TorchXRayVision 
+# Fine-Tuned TorchXRayVision 
 
 | <img src="https://raw.githubusercontent.com/mlmed/torchxrayvision/master/docs/torchxrayvision-logo.png" width="300px"/>  |  ([🎬 promo video](https://www.youtube.com/watch?v=Rl7xz0uULGQ)) <br>[<img src="http://img.youtube.com/vi/Rl7xz0uULGQ/0.jpg" width="400px"/>)](http://www.youtube.com/watch?v=Rl7xz0uULGQ "Video Title") |
 |---|---|
@@ -22,10 +22,14 @@ Twitter: [@torchxrayvision](https://twitter.com/torchxrayvision)
 ## Getting started
 
 ```
-$ pip install torchxrayvision
+$ pip install yourdirectory/torchxrayvision
 ```
+For Fine-tuned checkpoint on post COVID dataset.
+```python3 trainmodel.py 
 
-```python3
+```
+For TorchXrayVision's general use.
+``` Python3 
 import torchxrayvision as xrv
 import skimage, torch, torchvision
 
